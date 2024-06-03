@@ -119,7 +119,11 @@ namespace WeChatWASM
             // 记录上次导出的brotliType
             {
                 var filePath = Path.Combine(config.ProjectConf.DST, miniGameDir, "unity-namespace.js");
-                string content = File.ReadAllText(filePath, Encoding.UTF8);
+                string content = string.Empty;
+                if (File.Exists(filePath))
+                {
+                    content = File.ReadAllText(filePath, Encoding.UTF8);
+                }
                 Regex regex = new Regex("brotliMT\\s*:\\s*(true|false)", RegexOptions.IgnoreCase);
                 Match match = regex.Match(content);
                 if (match.Success)
