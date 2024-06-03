@@ -623,9 +623,9 @@
             是否使用iOS高性能Plus
             </summary>
         </member>
-        <member name="F:WeChatWASM.CompileOptions.brotliType">
+        <member name="F:WeChatWASM.CompileOptions.brotliMT">
             <summary>
-            brotli压缩类型
+            是否使用brotli多线程压缩
             </summary>
         </member>
         <member name="F:WeChatWASM.FontOptions.CJK_Unified_Ideographs">
