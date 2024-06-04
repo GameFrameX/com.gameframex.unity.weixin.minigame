@@ -985,7 +985,7 @@ namespace WeChatWASM
 
         public static bool MultiThreadBrotliCompress(string sourcePath, string dstPath, int quality = 11, int window = 21, int maxCpuThreads = 0)
         {
-            BrotliEnc.BrotliGetDictionary();
+            BrotliEnc.BrotliGetDictionary(); // x86_64的MacOS不会主动加载libbrotlienc.dylib依赖的libbrotlicommon.dylib，先调一次common的API触发加载
             if (maxCpuThreads == 0) maxCpuThreads = Environment.ProcessorCount;
             var sourceBuffer = File.ReadAllBytes(sourcePath);
             byte[] outputBuffer = new byte[0];
