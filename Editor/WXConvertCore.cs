@@ -985,6 +985,7 @@ namespace WeChatWASM
 
         public static bool MultiThreadBrotliCompress(string sourcePath, string dstPath, int quality = 11, int window = 21, int maxCpuThreads = 0)
         {
+            BrotliEnc.BrotliGetDictionary();
             if (maxCpuThreads == 0) maxCpuThreads = Environment.ProcessorCount;
             var sourceBuffer = File.ReadAllBytes(sourcePath);
             byte[] outputBuffer = new byte[0];
