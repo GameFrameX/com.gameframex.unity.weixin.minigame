@@ -623,6 +623,11 @@
             是否使用iOS高性能Plus
             </summary>
         </member>
+        <member name="F:WeChatWASM.CompileOptions.brotliMT">
+            <summary>
+            是否使用brotli多线程压缩
+            </summary>
+        </member>
         <member name="F:WeChatWASM.FontOptions.CJK_Unified_Ideographs">
             <summary>
             基本汉字 [0x4e00, 0x9fff] https://www.unicode.org/charts/PDF/U4E00.pdf

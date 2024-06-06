@@ -80,6 +80,8 @@ namespace WeChatWASM
         public static string dataMd5 = string.Empty;
         private static string SDKFilePath = string.Empty;
         public static string defaultImgSrc = "Assets/WX-WASM-SDK-V2/Runtime/wechat-default/images/background.jpg";
+
+        private static bool lastBrotliType = false;
         public static bool UseIL2CPP
         {
             get
@@ -113,6 +115,22 @@ namespace WeChatWASM
             UpdateGraphicAPI();
             EditorUtility.SetDirty(config);
             AssetDatabase.SaveAssets();
+
+            // 记录上次导出的brotliType
+            {
+                var filePath = Path.Combine(config.ProjectConf.DST, miniGameDir, "unity-namespace.js");
+                string content = string.Empty;
+                if (File.Exists(filePath))
+                {
+                    content = File.ReadAllText(filePath, Encoding.UTF8);
+                }
+                Regex regex = new Regex("brotliMT\\s*:\\s*(true|false)", RegexOptions.IgnoreCase);
+                Match match = regex.Match(content);
+                if (match.Success)
+                {
+                    lastBrotliType = match.Groups[1].Value == "true";
+                }
+            }
 
             if (config.ProjectConf.DST == string.Empty)
             {
@@ -934,13 +952,12 @@ namespace WeChatWASM
             var cachePath = Path.Combine(config.ProjectConf.DST, webglDir, filename);
             var shortFilename = filename.Substring(filename.IndexOf('.') + 1);
 
-            // 如果code没有发生过变化，则不再进行br压缩
-            if (File.Exists(cachePath))
+            // 如果code没有发生过变化，且压缩方式不变，则不再进行br压缩
+            if (File.Exists(cachePath) && lastBrotliType == config.CompileOptions.brotliMT)
             {
                 File.Copy(cachePath, targetPath, true);
                 return 0;
             }
-
             // 删除旧的br压缩文件
             if (Directory.Exists(Path.Combine(config.ProjectConf.DST, webglDir)))
             {
@@ -953,12 +970,48 @@ namespace WeChatWASM
                     }
                 }
             }
-            UnityUtil.brotli(sourcePath, targetPath);
+            if(config.CompileOptions.brotliMT)
+            {
+                MultiThreadBrotliCompress(sourcePath, targetPath);
+            }
+            else
+            {
+                UnityUtil.brotli(sourcePath, targetPath);
+            }
+
             if (targetPath != cachePath)
             {
                 File.Copy(targetPath, cachePath, true);
             }
             return 0;
+        }
+
+        public static bool MultiThreadBrotliCompress(string sourcePath, string dstPath, int quality = 11, int window = 21, int maxCpuThreads = 0)
+        {
+            if (maxCpuThreads == 0) maxCpuThreads = Environment.ProcessorCount;
+            var sourceBuffer = File.ReadAllBytes(sourcePath);
+            byte[] outputBuffer = new byte[0];
+            int ret = 0;
+            if (sourceBuffer.Length > 50 * 1024 * 1024 && Path.GetExtension(sourcePath) == "wasm") // 50MB以上的wasm压缩率低了可能导致小游戏包超过20MB，需提高压缩率
+            {
+                ret = BrotliEnc.CompressWasmMT(sourceBuffer, ref outputBuffer, quality, window, maxCpuThreads);
+            }
+            else
+            {
+                ret = BrotliEnc.CompressBufferMT(sourceBuffer, ref outputBuffer, quality, window, maxCpuThreads);
+            }
+
+            if (ret == 0) { 
+                using (FileStream fileStream = new FileStream(dstPath, FileMode.Create, FileAccess.Write)) { 
+                    fileStream.Write(outputBuffer, 0, outputBuffer.Length); 
+                }
+                return true; 
+            }
+            else
+            {
+                Debug.LogError("CompressWasmMT failed");
+                return false;
+            }
         }
 
 
@@ -1248,6 +1301,7 @@ namespace WeChatWASM
                 config.ProjectConf.IOSDevicePixelRatio.ToString(),
                 UseIL2CPP ? "" : "/framework",
                 UseIL2CPP ? "false" : "true",
+                config.CompileOptions.brotliMT ? "true" : "false",
                 // FontOptions
                 config.FontOptions.CJK_Unified_Ideographs ? "true" : "false",
                 config.FontOptions.C0_Controls_and_Basic_Latin ? "true" : "false",
