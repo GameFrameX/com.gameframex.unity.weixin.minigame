@@ -1,7 +1,9 @@
 {
     "name": "Wx",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "GUID:39e0a8d734341a748a11d45f50641371"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

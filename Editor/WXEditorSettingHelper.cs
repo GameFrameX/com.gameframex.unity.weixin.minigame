@@ -18,6 +18,8 @@ namespace WeChatWASM
 
     public class WXSettingsHelper
     {
+        public static string projectRootPath;
+
         public WXSettingsHelper()
         {
             Type weixinMiniGamePackageHelpersType = Type.GetType("UnityEditor.WeixinPackageHelpers,UnityEditor");
@@ -50,10 +52,16 @@ namespace WeChatWASM
 
             //loadData();
             foldInstantGame = WXConvertCore.IsInstantGameAutoStreaming();
+
+            projectRootPath = System.IO.Path.GetFullPath(Application.dataPath + "/../");
+
+            _dstCache = "";
         }
 
-        //private static WXEditorScriptObject config = UnityUtil.GetEditorConf();
+        private static WXEditorScriptObject config;
+        private static bool m_EnablePerfTool = false;
 
+        private static string _dstCache;
 
         public void OnFocus()
         {
@@ -101,13 +109,13 @@ namespace WeChatWASM
                     formInputData[targetDst] = "";
                 }
                 EditorGUILayout.LabelField(string.Empty, GUILayout.Width(10));
-                GUILayout.Label("导出路径", GUILayout.Width(140));
+                GUILayout.Label(new GUIContent("导出路径(?)", "支持输入相对于项目根目录的相对路径，如：wxbuild"), GUILayout.Width(140));
                 formInputData[targetDst] = GUILayout.TextField(formInputData[targetDst], GUILayout.MaxWidth(EditorGUIUtility.currentViewWidth - 270));
                 if (GUILayout.Button(new GUIContent("打开"), GUILayout.Width(40)))
                 {
                     if (!formInputData[targetDst].Trim().Equals(string.Empty))
                     {
-                        EditorUtility.RevealInFinder(formInputData[targetDst]);
+                        EditorUtility.RevealInFinder(GetAbsolutePath(formInputData[targetDst]));
                     }
                     GUIUtility.ExitGUI();
                 }
@@ -172,7 +180,7 @@ namespace WeChatWASM
                 EditorGUILayout.BeginVertical("frameBox", GUILayout.ExpandWidth(true));
 
 
-                this.formCheckbox("developBuild", "Development Build");
+                this.formCheckbox("developBuild", "Development Build", "", false, null, OnDevelopmentBuildToggleChanged);
                 this.formCheckbox("autoProfile", "Auto connect Profiler");
                 this.formCheckbox("scriptOnly", "Scripts Only Build");
                 this.formCheckbox("il2CppOptimizeSize", "Il2Cpp Optimize Size(?)", "对应于Il2CppCodeGeneration选项，勾选时使用OptimizeSize(默认推荐)，生成代码小15%左右，取消勾选则使用OptimizeSpeed。游戏中大量泛型集合的高频访问建议OptimizeSpeed，在使用HybridCLR等第三方组件时只能用OptimizeSpeed。(Dotnet Runtime模式下该选项无效)", !UseIL2CPP);
@@ -194,8 +202,18 @@ namespace WeChatWASM
                 this.formCheckbox("enableProfileStats", "显示性能面板");
                 this.formCheckbox("enableRenderAnalysis", "显示渲染日志(dev only)");
                 this.formCheckbox("brotliMT", "brotli多线程压缩(?)", "开启多线程压缩可以提高出包速度，但会降低压缩率。如若不使用wasm代码分包请勿用多线程出包上线");
+#if UNITY_6000_0_OR_NEWER
+                this.formCheckbox("enableWasm2023", "WebAssembly 2023(?)", "WebAssembly 2023包括对WebAssembly.Table和BigInt的支持。（Android (Android 10 or later recommended), iOS (iOS 15 or later recommended)）");
+#endif
+
+                if (m_EnablePerfTool)
+                {
+                    this.formCheckbox("enablePerfAnalysis", "集成性能分析工具", "将性能分析工具集成入Development Build包中", false, null, OnPerfAnalysisFeatureToggleChanged);
+                }
+
                 EditorGUILayout.EndVertical();
             }
+
 
 #if UNITY_INSTANTGAME
             foldInstantGame = EditorGUILayout.Foldout(foldInstantGame, "Instant Game - AutoStreaming");
@@ -284,8 +302,8 @@ namespace WeChatWASM
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button(new GUIContent("更多配置项"), GUILayout.Width(100), GUILayout.Height(25)))
             {
-                var config = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>("Assets/WX-WASM-SDK-V2/Editor/MiniGameConfig.asset");
-                Selection.activeObject = config;
+                var minigameConfig = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>("Assets/WX-WASM-SDK-V2/Editor/MiniGameConfig.asset");
+                Selection.activeObject = minigameConfig;
                 GUIUtility.ExitGUI();
             }
             if (GUILayout.Button(new GUIContent("WebGL转小游戏(不常用)"), GUILayout.Width(150), GUILayout.Height(25)))
@@ -374,7 +392,8 @@ namespace WeChatWASM
         {
             // SDKFilePath = Path.Combine(Application.dataPath, "WX-WASM-SDK-V2", "Runtime", "wechat-default", "unity-sdk", "index.js");
             SDKFilePath = Path.Combine(UnityUtil.GetWxSDKRootPath(), "Runtime", "wechat-default", "unity-sdk", "index.js");
-            var config = UnityUtil.GetEditorConf();
+            config = UnityUtil.GetEditorConf();
+            _dstCache = config.ProjectConf.DST;
 
             // Instant Game
             if (WXConvertCore.IsInstantGameAutoStreaming())
@@ -416,7 +435,7 @@ namespace WeChatWASM
             this.setData("compressDataPackage", config.ProjectConf.compressDataPackage);
             this.setData("videoUrl", config.ProjectConf.VideoUrl);
             this.setData("orientation", (int)config.ProjectConf.Orientation);
-            this.setData("dst", config.ProjectConf.DST);
+            this.setData("dst", _dstCache);
             this.setData("bundleHashLength", config.ProjectConf.bundleHashLength.ToString());
             this.setData("bundlePathIdentifier", config.ProjectConf.bundlePathIdentifier);
             this.setData("bundleExcludeExtensions", config.ProjectConf.bundleExcludeExtensions);
@@ -455,6 +474,8 @@ namespace WeChatWASM
             this.setData("enableProfileStats", config.CompileOptions.enableProfileStats);
             this.setData("enableRenderAnalysis", config.CompileOptions.enableRenderAnalysis);
             this.setData("brotliMT", config.CompileOptions.brotliMT);
+            this.setData("enableWasm2023", config.CompileOptions.enableWasm2023);
+            this.setData("enablePerfAnalysis", config.CompileOptions.enablePerfAnalysis);
             this.setData("autoUploadFirstBundle", true);
 
             // font options
@@ -488,7 +509,8 @@ namespace WeChatWASM
             config.ProjectConf.compressDataPackage = this.getDataCheckbox("compressDataPackage");
             config.ProjectConf.VideoUrl = this.getDataInput("videoUrl");
             config.ProjectConf.Orientation = (WXScreenOritation)this.getDataPop("orientation");
-            config.ProjectConf.DST = this.getDataInput("dst");
+            _dstCache = this.getDataInput("dst");
+            config.ProjectConf.DST = GetAbsolutePath(_dstCache);
             config.ProjectConf.bundleHashLength = int.Parse(this.getDataInput("bundleHashLength"));
             config.ProjectConf.bundlePathIdentifier = this.getDataInput("bundlePathIdentifier");
             config.ProjectConf.bundleExcludeExtensions = this.getDataInput("bundleExcludeExtensions");
@@ -525,6 +547,10 @@ namespace WeChatWASM
             config.CompileOptions.enableProfileStats = this.getDataCheckbox("enableProfileStats");
             config.CompileOptions.enableRenderAnalysis = this.getDataCheckbox("enableRenderAnalysis");
             config.CompileOptions.brotliMT = this.getDataCheckbox("brotliMT");
+#if UNITY_6000_0_OR_NEWER
+            config.CompileOptions.enableWasm2023 = this.getDataCheckbox("enableWasm2023");
+#endif
+            config.CompileOptions.enablePerfAnalysis = this.getDataCheckbox("enablePerfAnalysis");
 
             // font options
             config.FontOptions.CJK_Unified_Ideographs = this.getDataCheckbox("CJK_Unified_Ideographs");
@@ -546,6 +572,8 @@ namespace WeChatWASM
             config.FontOptions.Geometric_Shapes = this.getDataCheckbox("Geometric_Shapes");
             config.FontOptions.Mathematical_Operators = this.getDataCheckbox("Mathematical_Operators");
             config.FontOptions.CustomUnicode = this.getDataInput("CustomUnicode");
+
+            ApplyPerfAnalysisSetting();
         }
 
         private string getDataInput(string target)
@@ -633,7 +661,7 @@ namespace WeChatWASM
             GUILayout.EndHorizontal();
         }
 
-        private void formCheckbox(string target, string label, string help = null, bool disable = false, Action<bool> setting = null)
+        private void formCheckbox(string target, string label, string help = null, bool disable = false, Action<bool> setting = null, Action<bool> onValueChanged = null)
         {
             if (!formCheckboxData.ContainsKey(target))
             {
@@ -650,7 +678,15 @@ namespace WeChatWASM
                 GUILayout.Label(new GUIContent(label, help), GUILayout.Width(140));
             }
             EditorGUI.BeginDisabledGroup(disable);
-            formCheckboxData[target] = EditorGUILayout.Toggle(disable ? false : formCheckboxData[target]);
+
+            // Toggle the checkbox value based on the disable condition
+            bool newValue = EditorGUILayout.Toggle(disable ? false : formCheckboxData[target]);
+            // Update the checkbox data if the value has changed and invoke the onValueChanged action
+            if (newValue != formCheckboxData[target])
+            {
+                formCheckboxData[target] = newValue;
+                onValueChanged?.Invoke(newValue);
+            }
 
             if (setting != null)
             {
@@ -670,7 +706,90 @@ namespace WeChatWASM
             GUILayout.EndHorizontal();
         }
 
+        private void OnDevelopmentBuildToggleChanged(bool InNewValue)
+        {
+            // 针对non-dev build，取消性能分析工具的集成
+            if (!InNewValue)
+            {
+                this.setData("enablePerfAnalysis", false);
+            }
+        }
+
+        private void OnPerfAnalysisFeatureToggleChanged(bool InNewValue)
+        {
+            // 针对non-dev build，取消性能分析工具的集成
+            if (!formCheckboxData["developBuild"] && InNewValue)
+            {
+                this.setData("enablePerfAnalysis", false);
+            }
+        }
+
+        private void ApplyPerfAnalysisSetting()
+        {
+            const string MACRO_ENABLE_WX_PERF_FEATURE = "ENABLE_WX_PERF_FEATURE";
+            string defineSymbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
+
+            bool shouldAddSymbol = this.getDataCheckbox("enablePerfAnalysis") && this.getDataCheckbox("developBuild"); 
+
+#if !UNITY_2021_2_OR_NEWER || UNITY_2023_2_OR_NEWER
+            if(shouldAddSymbol)
+            {
+                shouldAddSymbol = false;
+                EditorUtility.DisplayDialog("警告", $"当前Unity版本({Application.unityVersion})不在性能分析工具适配范围内(2021.2-2023.1), 性能分析工具将被禁用。", "确定");
+                config.CompileOptions.enablePerfAnalysis = false; 
+                this.setData("enablePerfAnalysis", false); 
+            }
+#endif
+
+            if (shouldAddSymbol)
+            {
+                if (defineSymbols.IndexOf(MACRO_ENABLE_WX_PERF_FEATURE) == -1)
+                {
+                    PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, MACRO_ENABLE_WX_PERF_FEATURE + $";{defineSymbols}");
+                }
+            }
+            else
+            {
+                // 删除掉已有的ENABLE_WX_PERF_FEATURE
+                if (defineSymbols.IndexOf(MACRO_ENABLE_WX_PERF_FEATURE) != -1)
+                {
+                    defineSymbols = defineSymbols.Replace(MACRO_ENABLE_WX_PERF_FEATURE, "").Replace(";;", ";").Trim(';');
+                    PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, defineSymbols);
+                }
+            }
+        }
+
+        public static bool IsAbsolutePath(string path)
+        {
+            // 检查是否为空或空白
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return false;
+            }
+
+            // 在 Windows 上，检查驱动器字母或网络路径
+            if (Application.platform == RuntimePlatform.WindowsEditor && Path.IsPathRooted(path))
+            {
+                return true;
+            }
+
+            // 在 Unix/Linux 和 macOS 上，检查是否以 '/' 开头
+            if (Application.platform == RuntimePlatform.OSXEditor && path.StartsWith("/"))
+            {
+                return true;
+            }
+
+            return false; // 否则为相对路径
+        }
+
+        public static string GetAbsolutePath(string path)
+        {
+            if (IsAbsolutePath(path))
+            {
+                return path;
+            }
+
+            return Path.Combine(projectRootPath, path);
+        }
     }
-
-
 }

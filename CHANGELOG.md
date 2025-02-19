@@ -6,6 +6,73 @@ Removed - 删除功能/接口
 Fixed - 修复问题
 Others - 其他 
 -->
+## 2024-12-25 【预发布】
+PackageManager(git URL): https://github.com/wechat-miniprogram/minigame-tuanjie-transform-sdk.git#pre-v0.1.24
+### Feature
+* 普通: OffShareMessageToFriend支持
+### Fixed
+* 普通: reserveChannelsLive补充回调参数
+* 普通: 低基础库版本报错修复
+* 普通: BannerAd.OnResize回调报错修复
+* 普通: requestMidasPaymentGameItem修复
+* 普通: WriteSync接口无法正常返回已写入的字节数
+* 普通: ReadSync接口无法正常调用
+
+## 2024-12-18 【重要更新】
+### Feature
+* 普通: 开放数据域支持screenCanvas
+* 普通: 完善screenCanvas.toTempFilePath
+* 普通: 低版本WindowInfo适配
+* 普通: 调整autoAdaptScreen默认false
+* 普通: 首资源包放小游戏分包时，总大小调整为30MB
+### Fixed
+* 重要: 更改WebGLInput.mobileKeyboardSupport默认属性为 false，该属性导致Unity2022 以上版本 Touch 会多调用一次 MainLoop产生较大性能损耗。请使用微信键盘API或 WXTouchInputOverride支持文本输入框
+
+## 2024-11-14 【普通更新】
+### Feature
+* 普通: WXSDK代码简化
+* 普通: 增强JsonMapper报错信息
+* 普通: 适配插件版本升级到1.2.62
+### Fixed
+* 普通: WX.Cloud.Init 自定义环境报错
+
+## 2024-10-8 【重要更新】
+### Feature
+* 普通: UDPSocket.write适配
+* 普通: 部分JS API接口更新
+* 普通: 云开发/云托管支持
+### Fixed
+* 普通: 修复.net8 OnApplicationFocus/Pause适配
+* 普通: 修复插件自动调节dpr后，获取不到实际dpr
+* 普通：修复音频设置timeSamples不生效
+* 重要: 修复iOS18微信系统字体丢失
+* 重要：修复10S17.5以上音频退后台无法恢复
+* 重要：修复音频PC端异常循环播
+* 重要: 修复游戏圈文案默认显示'打开游戏圈'的问题
+
+## 2024-8-13 【重要更新】
+### Feature
+* 普通: 横竖屏切换，PC窗口大小自动适配
+* 普通: PC分辨率模糊，自动调节dpr属性
+### Fixed
+* 严重：修复多点触控产生的异常
+* 普通：适配2021，去_JS_Focus_Window
+* 普通：修复多线程压缩的扩展名判定
+
+## 2024-7-09 【普通更新】
+### Feature
+* 普通：兼容2022新增的音频API
+* 普通：更快的转换打包速度
+* 普通：Unity侧添加设置分辨率接口
+### Fixed
+* 普通：临时兼容wk 17.5暂停音频无法恢复的bug
+* 普通：Touch id在特定情况丢失
+* 普通：使用微信压缩纹理工具sprite atlas版本被修改
+
+## 2024-5-17 【普通更新】
+Fixed
+* 普通：修复WXAssetBundle与预下载冲突问题
+
 ## 2024-5-15 【普通更新】
 ### Feature
 * 普通：支持JS构建模板，请查阅[模板文档](https://wechat-miniprogram.github.io/minigame-unity-webgl-transform/Design/BuildTemplate.html)
