@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.27](https://github.com/GameFrameX/com.gameframex.unity.weixin.minigame/tree/0.1.27) (2025-05-31)
+
+[Full Changelog](https://github.com/GameFrameX/com.gameframex.unity.weixin.minigame/compare/0.1.26...0.1.27)
+
 ## [0.1.26](https://github.com/GameFrameX/com.gameframex.unity.weixin.minigame/tree/0.1.26) (2025-05-31)
 
 [Full Changelog](https://github.com/GameFrameX/com.gameframex.unity.weixin.minigame/compare/0.1.25...0.1.26)
