@@ -1,5 +1,5 @@
 {
-  "name": "com.qq.weixin.minigame",
+  "name": "com.gameframex.unity.weixin.minigame",
   "displayName": "WXSDK",
   "description": "WeChat Mini Game Tuanjie Engine Adapter SDK Package.",
   "version": "0.1.26",
